@@ -7,7 +7,7 @@
 
 Adapter between Mainflux IoT system and [LoRa Server](https://github.com/brocaar/loraserver).
 
-This adapter sits between Mainflux and LoRa server and just forwards the messages form one to other system via MQTT protocol
+This adapter sits between Mainflux and LoRa server and just forwards the messages form one system to another via MQTT protocol
 to the adequate MQTT topics and in the good message format (JSON and SenML), respecting the APIs of both systems. 
 
 This way LoRa Server is used for connectivity layer and data is pushed via this adapter service to Mainflux, where it is persisted and routed to other protocols via Mainflux multi-protocol message broker.
