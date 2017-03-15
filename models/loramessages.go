@@ -22,7 +22,7 @@ type RxInfo []struct{
 }
 
 type (
-        Message struct {
+        LoraMessage struct {
                 DevEUI string `json:"devEUI"`
                 RxInfo `json:"rxInfo"`
                 TxInfo `json:"txInfo"`
