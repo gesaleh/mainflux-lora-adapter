@@ -33,7 +33,7 @@ and then compile it and install the binary in `$GOBIN` directory.
 
 Now you can run the program with:
 ```
-mainflux-cli
+mainflux-lora-adapter
 ```
 if `$GOBIN` is in `$PATH` (otherwise use `$GOBIN/mainflux-lora-adapter`)
 
