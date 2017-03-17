@@ -9,7 +9,7 @@ import (
         log "github.com/Sirupsen/logrus"
         "github.com/eclipse/paho.mqtt.golang"
         "github.com/loraAdapter/models"
-	"github.com/loraAdapter/config"
+		    "github.com/loraAdapter/config"
 )
 
 // Backend implements a MQTT pub-sub backend.
@@ -97,7 +97,9 @@ func (t *Backend) LoraHandler(client *mqtt.Client, msg mqtt.Message) {
         if err != nil {
                 log.Errorf("\nerror: decode base64 failed")
         }
-	topic = cfg.LORAChannel
+
+		  topic = cfg.LORAChannel
+
         t.SendMQTTMsg(topic, data)
         log.Info(" --> PUSH DATA: %s to %s\n", topic, data)
 }
