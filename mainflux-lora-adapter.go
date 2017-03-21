@@ -1,4 +1,3 @@
-
 /**
  * Copyright (c) Mainflux
  *
@@ -14,28 +13,24 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/loraAdapter/api"
-	"github.com/loraAdapter/config"
 )
 
-
 var usageStr = `
-Usage: mainflux [options]
-Adapter Options:
-    -c, --config <file>              Configuration file
+Usage: maiflux-lora-adapter [options]
 Logging Options:
     -l, --log <file>                 File to redirect log output
-    -T, --logtime                    Timestamp log entries (default: true)
-    -D, --debug                      Enable debugging output
-    -V, --trace                      Trace the raw protocol
-    -DV                              Debug and trace
 Common Options:
     -h, --help                       Show this message
     -v, --version                    Show version
 `
+
+const (
+	Version string = "0.1"
+)
 
 // usage will print out the flag options for the server.
 func usage() {
@@ -50,26 +45,20 @@ func PrintServerAndExit() {
 }
 
 func main() {
-	// Server Options
-	opts := Options{}
+
+	// Config
+	cfg = Config{
+		MQTTMainfluxHost: "0.0.0.0",
+		MQTTMainfluxPort: 1883,
+		MQTTLoraHost:     "0.0.0.0",
+		MQTTLoraPort:     1883,
+	}
 
 	var showVersion bool
-	var debugAndTrace bool
-	var configFile string
 
 	// Parse flags
-
-	flag.BoolVar(&opts.Debug, "D", false, "Enable Debug logging.")
-	flag.BoolVar(&opts.Debug, "debug", false, "Enable Debug logging.")
-	flag.BoolVar(&opts.Trace, "V", false, "Enable Trace logging.")
-	flag.BoolVar(&opts.Trace, "trace", false, "Enable Trace logging.")
-	flag.BoolVar(&debugAndTrace, "DV", false, "Enable Debug and Trace logging.")
-	flag.BoolVar(&opts.Logtime, "T", true, "Timestamp log entries.")
-	flag.BoolVar(&opts.Logtime, "logtime", true, "Timestamp log entries.")
-	flag.StringVar(&configFile, "c", "", "Configuration file.")
-	flag.StringVar(&configFile, "config", "", "Configuration file.")
-	flag.StringVar(&opts.LogFile, "l", "", "File to store logging output.")
-	flag.StringVar(&opts.LogFile, "log", "", "File to store logging output.")
+	flag.StringVar(&cfg.LogFile, "l", "", "File to store logging output.")
+	flag.StringVar(&cfg.LogFile, "log", "", "File to store logging output.")
 	flag.BoolVar(&showVersion, "version", false, "Print version information.")
 	flag.BoolVar(&showVersion, "v", false, "Print version information.")
 
@@ -80,11 +69,6 @@ func main() {
 	// Show version and exit
 	if showVersion {
 		PrintServerAndExit()
-	}
-
-	// One flag can set multiple options.
-	if debugAndTrace {
-		opts.Trace, opts.Debug = true, true
 	}
 
 	// Process args looking for non-flag options,
@@ -98,25 +82,33 @@ func main() {
 		}
 	}
 
-	// Parse config
-	var cfg config.Config
-	cfg.Parse()
-
 	// Print banner
 	color.Cyan(banner)
-	color.Cyan(fmt.Sprintf("MainFlux Lora Server Adapter is running %s:%d-%s:d", cfg.MQTTTargetHost, cfg.MQTTTargetPort,cfg.MQTTHost, cfg.MQTTPort ))
+	color.Cyan(fmt.Sprintf("MainFlux Lora Server Adapter is running %s:%d-%s:%d", cfg.MQTTMainfluxHost, cfg.MQTTMainfluxPort, cfg.MQTTLoraHost, cfg.MQTTLoraPort))
 
-	// mqttClient 
-	mqttTargetHost := fmt.Sprintf("tcp://%s:%d", cfg.MQTTTargetHost, cfg.MQTTTargetPort)
-	mqttHost := fmt.Sprintf("tcp://%s:%d", cfg.MQTTHost, cfg.MQTTPort)
-	api.NewTargetBackend(mqttTargetHost, "", "")
-	api.NewBackend(mqttHost, "", "")
-	//if err != nil {
-	//	log.Fatalf("could not setup mqtt backend: %s", err)
-	//}
-	//defer Pubsub.Close()
+	// mqttClient
+	mainfluxMqttAddr := fmt.Sprintf("tcp://%s:%d", cfg.MQTTMainfluxHost, cfg.MQTTMainfluxPort)
+	loraMqttAddr := fmt.Sprintf("tcp://%s:%d", cfg.MQTTLoraHost, cfg.MQTTLoraPort)
 
+	// Create backends that connect as MQTT clients to brokers of Mainflux and LoRa Server
+	var e error
+	if mainfluxBackend, e = NewBackend(mainfluxMqttAddr, "", "", false); e != nil {
+		println("Cannot create the Mainflux backend")
+	}
+
+	if loraBackend, e = NewBackend(loraMqttAddr, "", "", true); e != nil {
+		println("Cannot create LoRa Server backend")
+	}
+
+	// Subscribe LoRa backend to LoRa Network Server topic
+	if err := loraBackend.Sub(); err != nil {
+		println("Cannot subsribe to LoRa Network Server")
+	}
+
+	runtime.Goexit()
+
+	defer mainfluxBackend.Close()
+	defer loraBackend.Close()
 }
 
 var banner = `MAINFLUX LORASERVER ADAPTER  `
-
